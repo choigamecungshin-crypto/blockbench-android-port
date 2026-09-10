@@ -151,18 +151,12 @@ public class AndroidFS {
         try {
             File file = resolve(path);
 
-            Log.d("BlockbenchFS", "READ: " + path);
-            Log.d("BlockbenchFS", "RESOLVED: " + file.getAbsolutePath());
-            Log.d("BlockbenchFS", "EXISTS: " + file.exists());
-            Log.d("BlockbenchFS", "SIZE: " + file.length());
 
             byte[] data = Files.readAllBytes(file.toPath());
 
-            Log.d("BlockbenchFS", "READ BYTES: " + data.length);
 
             return Base64.encodeToString(data, Base64.NO_WRAP);
         } catch (Exception e) {
-            Log.e("BlockbenchFS", "READ FAILED: " + path, e);
             return "";
         }
     }
@@ -191,7 +185,6 @@ public class AndroidFS {
                     out.flush();
                 }
 
-                Log.d(
                     "BlockbenchFS",
                     "SAF WRITE OK: " + uri
                 );
@@ -210,7 +203,6 @@ public class AndroidFS {
 
             return true;
         } catch (Exception e) {
-            Log.e("BlockbenchFS", "WRITE FAILED: " + path, e);
             return false;
         }
     }

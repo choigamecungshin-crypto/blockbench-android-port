@@ -499,7 +499,7 @@ export function setProgressBar(id, val, time) {
 	} else {
 		$('#'+id+' > .progress_bar_inner').animate({width: val*488}, time-1)
 	}
-	if (isApp) {
+	if (isApp && typeof currentwindow.setProgressBar === "function") {
 		currentwindow.setProgressBar(val)
 	}
 }

@@ -1,4 +1,5 @@
 import { currentwindow, fs, nativeImage } from "../native_apis";
+import { androidWebViewScreenshot } from "../native_apis_android";
 import { applyPalette, quantize } from "../util/gif";
 
 function createEmptyCanvas(width, height) {
@@ -191,6 +192,12 @@ export const Screencam = {
 		}
 	}),
 	screenshotPreview(preview, options = 0, cb) {
+                if (Blockbench.platform === "android") {
+                        androidWebViewScreenshot().then(data => {
+                                if (data) Screencam.returnScreenshot("data:image/png;base64," + data, cb);
+                        });
+                        return;
+                }
 		Canvas.withoutGizmos(function() {
 
 			preview.render()

@@ -32,6 +32,10 @@ const AndroidBridge = {
     }
 };
 
+export async function androidWebViewScreenshot() {
+    return await AndroidBridge.call("screenshot.webview");
+}
+
 /**
  * @internal
  */
@@ -550,7 +554,7 @@ export const os = {
     version: () => 'Android'
 };
 
-export const currentwindow = electron.getCurrentWindow();
+export const currentwindow = { on: () => {}, once: () => {}, removeListener: () => {}, webContents: { setZoomFactor: () => {} }, capturePage: async () => { const data = await androidWebViewScreenshot(); return { toDataURL: () => "data:image/png;base64," + data }; } };
 export const dialog = electron.dialog;
 
 export const process = {

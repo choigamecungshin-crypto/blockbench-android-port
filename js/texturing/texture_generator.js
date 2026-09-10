@@ -488,7 +488,9 @@ export const TextureGenerator = {
 				Blockbench.setProgress();
 			}
 		});
-		progress_dialog.show();
+                if (Blockbench.platform !== "android") {
+                        progress_dialog.show();
+                }
 
 		let last_timeout = performance.now();
 		async function setProgress(progress) {
@@ -942,6 +944,9 @@ export const TextureGenerator = {
 
 		if (face_list.length == 0 && box_uv_templates.length == 0) {
 			progress_dialog.close();
+                if (progress_dialog.object && progress_dialog.object.parentNode) {
+                        progress_dialog.object.remove();
+                }
 			Blockbench.showMessage('message.no_valid_elements', 'center');
 			return;
 		}
@@ -1642,6 +1647,9 @@ console.log("[ANDROID] After changeUVResolution");
 			uv_mode: true
 		})
 		progress_dialog.close();
+           if (progress_dialog.object && progress_dialog.object.parentNode) {
+                   progress_dialog.object.remove();
+           }
 		Blockbench.setProgress();
                 console.log("[ANDROID] Template progress cleared");
 		// Warning
