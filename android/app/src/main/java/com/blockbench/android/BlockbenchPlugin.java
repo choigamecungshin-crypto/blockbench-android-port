@@ -391,6 +391,7 @@ public class BlockbenchPlugin extends Plugin {
         return result;
     }
 
+    @PluginMethod
     public void call(PluginCall call) {
         String api = call.getString("api", "");
         String arg = call.getString("arg", "");
