@@ -132,13 +132,14 @@ var codec = new Codec('project', {
 			AnimationItem.all[0].select();
 		}
 	},
-	export() {
+	export(save_as = false) {
 		Blockbench.export({
 			resource_id: 'model',
 			type: this.name,
 			extensions: [this.extension],
 			name: this.fileName(),
 			startpath: this.startPath(),
+			save_as,
 			content: isApp ? null : this.compile(),
 			custom_writer: isApp ? (content, path) => {
 				// Path needs to be changed before compiling for relative resource paths
@@ -861,7 +862,7 @@ BARS.defineActions(function() {
 			if (isApp && Project.save_path) {
 				codec.write(codec.compile(), Project.save_path);
 			} else {
-				codec.export()
+				codec.export(false)
 			}
 		}
 	})
@@ -901,7 +902,7 @@ BARS.defineActions(function() {
 		condition: () => Project,
 		click: function () {
 			saveTextures(true)
-			codec.export()
+			codec.export(true)
 		}
 	})
 	new Action('export_legacy_project', {

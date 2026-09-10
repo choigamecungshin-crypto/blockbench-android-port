@@ -63,7 +63,8 @@ function createJsonPlugin(ext_suffix, namespace) {
     };
 };
 
-const isApp = options.target == 'electron';
+const isAndroid = options.target == 'android';
+const isApp = options.target == 'electron' || isAndroid;
 const dev_mode = options.watch || options.serve;
 const minify = !dev_mode;
 
@@ -97,7 +98,7 @@ const config = {
     plugins: [
         conditionalImportPlugin(2, {
             filter: /native_apis/,
-            file: isApp ? 'native_apis.ts' : 'native_apis_web.ts'
+            file: options.target == 'electron' ? 'native_apis.ts' : isAndroid ? 'native_apis_android.ts' : 'native_apis_web.ts'
         }),
         conditionalImportPlugin(3, {
             filter: /vue.js/,

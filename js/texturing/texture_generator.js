@@ -991,6 +991,7 @@ export const TextureGenerator = {
 			}
 
 			
+                        console.log("[ANDROID] Template scan finished");
 			var max_size = Math.max(extend_x, extend_y);
 			if (options.power) {
 				max_size = Math.getNextPower(max_size, 16);
@@ -1119,12 +1120,13 @@ export const TextureGenerator = {
 				}
 				if (cancelled) return;
 				handled += 6;
+                                        console.log("[ANDROID] Template scan start", tpl.width, tpl.height);
 				//Scan for empty spot
-				for (let line = 0; line < 2e3; line++) {
+				for (let line = 0; line < 256; line++) {
 					for (let space = 0; space <= line; space++) {
-						if (place(tpl, space, line)) continue outer_loop;
+						if (place(tpl, space, line)) { console.log("[ANDROID] placed", tpl.width, tpl.height, space, line); continue outer_loop; }
 						if (space == line) continue;
-						if (place(tpl, line, space)) continue outer_loop;
+						if (place(tpl, line, space)) { console.log("[ANDROID] placed", tpl.width, tpl.height, line, space); continue outer_loop; }
 					}
 				}
 			}
@@ -1135,6 +1137,7 @@ export const TextureGenerator = {
 				}
 				if (cancelled) return;
 				handled += 1;
+                                        console.log("[ANDROID] Template scan start", tpl.width, tpl.height);
 				//Scan for empty spot
 				for (var line = 0; line < 2e3; line++) {
 					for (var space = 0; space <= line; space++) {
@@ -1146,6 +1149,7 @@ export const TextureGenerator = {
 			}
 
 			
+                        console.log("[ANDROID] Template scan finished");
 			var max_size = Math.max(extend_x, extend_y)
 			if (options.power) {
 				max_size = Math.getNextPower(max_size*res_multiple, 16)/res_multiple;
@@ -1171,7 +1175,8 @@ export const TextureGenerator = {
 			})
 		}
 
-		await setProgress(1);
+                        console.log("[ANDROID] Before final progress");
+		console.log("[ANDROID] Before final progress"); setProgress(1); console.log("[ANDROID] After final progress");
 
 		// MARK: Create Texture
 		if (background_color) {
@@ -1576,13 +1581,15 @@ export const TextureGenerator = {
 			TextureGenerator.paintCubeBoxTemplate(t.obj, options.texture, canvas, t, false, res_multiple);
 		})
 
-		var dataUrl = canvas.toDataURL()
+		console.log("[ANDROID] Before toDataURL", canvas.width, canvas.height); var dataUrl = canvas.toDataURL(); console.log("[ANDROID] After toDataURL", dataUrl.length)
 		let texture = typeof makeTexture == 'function' ? makeTexture(dataUrl) : makeTexture;
 		if (makeTexture instanceof Texture) {
 			makeTexture.updateSource(dataUrl);
 		}
 
-		let affected_elements = TextureGenerator.changeUVResolution(new_resolution[0], new_resolution[1], texture);
+		console.log("[ANDROID] Before changeUVResolution");
+let affected_elements = TextureGenerator.changeUVResolution(new_resolution[0], new_resolution[1], texture);
+console.log("[ANDROID] After changeUVResolution");
 
 		if (texture) {
 			element_list.forEach(function(element) {
@@ -1635,7 +1642,8 @@ export const TextureGenerator = {
 			uv_mode: true
 		})
 		progress_dialog.close();
-		setProgress();
+		Blockbench.setProgress();
+                console.log("[ANDROID] Template progress cleared");
 		// Warning
 		if (element_list.find(element => {
 			if (!element.getTypeBehavior('cube_faces') || !element.box_uv) return false;
@@ -1742,7 +1750,7 @@ export const TextureGenerator = {
 				if (vertices[3]) face.uv[vertices[3]] = [x+0.75, y+0.75];
 			}
 		})
-		var dataUrl = canvas.toDataURL()
+		console.log("[ANDROID] Before toDataURL", canvas.width, canvas.height); var dataUrl = canvas.toDataURL(); console.log("[ANDROID] After toDataURL", dataUrl.length)
 		var texture = cb(dataUrl)
 
 		let affected_elements = TextureGenerator.changeUVResolution(new_resolution[0], new_resolution[1], texture);
@@ -1769,6 +1777,9 @@ export const TextureGenerator = {
 			uv_only: true,
 			uv_mode: true
 		})
+        progress_dialog.close();
+        Blockbench.setProgress();
+        console.log("[ANDROID] Template dialog closed");
 	},
 	//Misc
 	changeUVResolution(width, height, texture) {

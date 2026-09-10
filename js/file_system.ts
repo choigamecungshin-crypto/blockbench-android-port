@@ -1,7 +1,7 @@
 import saveAs from 'file-saver'
 import StateMemory from './util/state_memory'
 import { pathToExtension } from './util/util';
-import { app, currentwindow, electron, fs, ipcRenderer, webUtils } from './native_apis';
+import { app, currentwindow, electron, fs, ipcRenderer, webUtils, androidPickFile, androidSaveFile, androidSaveFolder } from './native_apis';
 
 function isStreamerMode(): boolean {
 	// @ts-ignore
@@ -58,6 +58,10 @@ export namespace Filesystem {
 		/** File picker start path
 		 */
 		startpath?: string
+                /**
+                 * Android: use folder picker for Save As
+                 */
+                save_as?: boolean
 		/** The resource identifier group, used to allow the file dialog (open and save) to remember where it was last used
 		 */
 		resource_id?: ResourceID
@@ -74,7 +78,32 @@ export namespace Filesystem {
 	 * @returns 
 	 */
 	export function importFile(options: ImportOptions, callback?: (files: FileResult[]) => void) {
-		if (isApp) {
+
+                // Android native file picker
+                if ((window as any).Capacitor?.isNativePlatform?.()) {
+
+                        androidPickFile(options.multiple === true).then(fileNames => {
+                                if (!fileNames || fileNames.length === 0) {
+                                        return;
+                                }
+
+                                console.log('[Android] Import files:', fileNames);
+
+                                if (options.resource_id) {
+                                        StateMemory.get('dialog_paths')[options.resource_id] =
+                                                PathModule.dirname(fileNames[0]);
+
+                                        StateMemory.save('dialog_paths');
+                                }
+
+                                readFile(fileNames, options, callback);
+                        });
+
+                        return;
+                }
+
+
+                if (isApp) {
 			let properties = ['openFile'] as any[];
 			if (options.multiple) {
 				properties.push('multiSelections')
@@ -338,7 +367,11 @@ export namespace Filesystem {
 		/**
 		 * The resource identifier group, used to allow the file dialog (open and save) to remember where it was last used
 		 */
-		resource_id?: string
+		                /**
+                 * Android: use folder picker for Save As
+                 */
+                save_as?: boolean
+resource_id?: string
 	}
 	/**
 	 * Open a file save dialog to let the user pick a location and name to save a file. On the web app, this might save the file directoy into the downloads folder depending on browser settings.
@@ -401,6 +434,88 @@ export namespace Filesystem {
 					options.startpath += osfs + options.name + (options.extensions ? '.'+options.extensions[0] : '');
 				}
 			}
+			if ((window as any).Capacitor?.isNativePlatform?.()) {
+
+
+			        const extension =
+
+			                options.extensions?.[0]
+
+			                        ? '.' + options.extensions[0]
+
+			                        : '';
+
+
+			        const defaultName =
+
+			                options.name
+
+			                        ? (
+
+			                                extension &&
+
+			                                !options.name.toLowerCase().endsWith(extension.toLowerCase())
+
+			                                        ? options.name + extension
+
+			                                        : options.name
+
+			                          )
+
+			                        : 'untitled' + extension;
+
+
+			        const savePromise = options.save_as
+
+			                ? androidSaveFolder(
+
+			                        defaultName,
+
+			                        options.extensions || []
+
+			                  )
+
+			                : androidSaveFile(
+
+			                        defaultName,
+
+			                        options.extensions || []
+
+			                  );
+
+
+			        savePromise.then(file_path => {
+
+
+			                if (!file_path) return;
+
+
+			                console.log('[Android] Save file:', file_path);
+
+
+			                if (options.resource_id) {
+
+			                        StateMemory.get('dialog_paths')[options.resource_id] =
+
+			                                PathModule.dirname(file_path);
+
+
+			                        StateMemory.save('dialog_paths');
+
+			                }
+
+
+			                writeFile(file_path, options, callback);
+
+
+			        });
+
+
+			        return;
+
+			}
+
+
 			let file_path = electron.dialog.showSaveDialogSync(currentwindow, {
 				filters: [ {
 					name: options.type,
