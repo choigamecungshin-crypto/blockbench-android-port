@@ -6,12 +6,6 @@ import android.content.Context;
 import android.net.Uri;
 import android.provider.OpenableColumns;
 import android.database.Cursor;
-import android.util.Log;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.webkit.WebView;
-import java.io.ByteArrayOutputStream;
-import android.util.Base64;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -38,6 +32,8 @@ public class BlockbenchPlugin extends Plugin {
     public void saveFile(PluginCall call) {
         String defaultName = call.getString("defaultName", "untitled");
 
+        
+        
 
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -97,10 +93,7 @@ public class BlockbenchPlugin extends Plugin {
                     Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                 );
         } catch (Exception e) {
-                "BlockbenchPlugin",
-                "Could not persist file permission",
-                e
-            );
+            
         }
 
         try {
@@ -132,13 +125,9 @@ public class BlockbenchPlugin extends Plugin {
                 )
                 .apply();
 
-                "BlockbenchPlugin",
-                "SAF file: " + documentUri
-            );
+            
 
-                "BlockbenchPlugin",
-                "Virtual path: " + virtualPath
-            );
+            
 
             JSObject ret = new JSObject();
             ret.put("file", virtualPath);
@@ -146,10 +135,7 @@ public class BlockbenchPlugin extends Plugin {
             call.resolve(ret);
 
         } catch (Exception e) {
-                "BlockbenchPlugin",
-                "Save file failed",
-                e
-            );
+            
 
             JSObject ret = new JSObject();
             ret.put("file", "");
@@ -162,6 +148,8 @@ public class BlockbenchPlugin extends Plugin {
     public void saveFolder(PluginCall call) {
         String defaultName = call.getString("defaultName", "untitled");
 
+        
+        
 
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
 
@@ -218,10 +206,7 @@ public class BlockbenchPlugin extends Plugin {
                     Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                 );
         } catch (Exception e) {
-                "BlockbenchPlugin",
-                "Could not persist folder permission",
-                e
-            );
+            
         }
 
         try {
@@ -255,10 +240,7 @@ public class BlockbenchPlugin extends Plugin {
                     saveFileName
                 );
             } else {
-                    "BlockbenchPlugin",
-                    "Existing SAF file found, overwriting: " +
-                    documentUri
-                );
+                
             }
 
             getContext()
@@ -273,17 +255,11 @@ public class BlockbenchPlugin extends Plugin {
                 )
                 .apply();
 
-                "BlockbenchPlugin",
-                "SAF folder: " + treeUri
-            );
+            
 
-                "BlockbenchPlugin",
-                "SAF file: " + documentUri
-            );
+            
 
-                "BlockbenchPlugin",
-                "Virtual path: " + virtualPath
-            );
+            
 
             JSObject ret = new JSObject();
             ret.put("file", virtualPath);
@@ -291,10 +267,7 @@ public class BlockbenchPlugin extends Plugin {
             call.resolve(ret);
 
         } catch (Exception e) {
-                "BlockbenchPlugin",
-                "Save As failed",
-                e
-            );
+            
 
             JSObject ret = new JSObject();
             ret.put("file", "");
@@ -361,10 +334,7 @@ public class BlockbenchPlugin extends Plugin {
             }
 
         } catch (Exception e) {
-                "BlockbenchPlugin",
-                "Could not search existing SAF file",
-                e
-            );
+            
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -398,17 +368,11 @@ public class BlockbenchPlugin extends Plugin {
                 documentId
             );
 
-            "BlockbenchPlugin",
-            "Tree URI: " + treeUri
-        );
+        
 
-            "BlockbenchPlugin",
-            "Document URI: " + documentUri
-        );
+        
 
-            "BlockbenchPlugin",
-            "Document ID: " + documentId
-        );
+        
 
         Uri result =
             android.provider.DocumentsContract.createDocument(
@@ -431,30 +395,6 @@ public class BlockbenchPlugin extends Plugin {
         String api = call.getString("api", "");
         String arg = call.getString("arg", "");
 
-        if ("screenshot.webview".equals(api)) {
-            try {
-                WebView webView = getBridge().getWebView();
-                Bitmap bitmap = Bitmap.createBitmap(
-                    webView.getWidth(),
-                    webView.getHeight(),
-                    Bitmap.Config.ARGB_8888
-                );
-                Canvas canvas = new Canvas(bitmap);
-                webView.draw(canvas);
-
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
-                bitmap.recycle();
-
-                JSObject ret = new JSObject();
-                ret.put("result", Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP));
-                call.resolve(ret);
-            } catch (Exception e) {
-                call.reject("WebView screenshot failed", e);
-            }
-            return;
-        }
-
         if ("downloadFile".equals(api)) {
             try {
                 org.json.JSONObject obj = new org.json.JSONObject(arg);
@@ -462,6 +402,8 @@ public class BlockbenchPlugin extends Plugin {
                 String urlString = obj.getString("url");
                 String path = obj.getString("path");
 
+                
+                
 
                 new Thread(() -> {
                     HttpURLConnection connection = null;
@@ -506,9 +448,7 @@ public class BlockbenchPlugin extends Plugin {
                             out.flush();
                         }
 
-                            "BlockbenchPlugin",
-                            "Native download OK: " + path
-                        );
+                        
 
                         JSObject ret = new JSObject();
                         ret.put("result", new JSObject()
@@ -519,10 +459,7 @@ public class BlockbenchPlugin extends Plugin {
                         call.resolve(ret);
 
                     } catch (Exception e) {
-                            "BlockbenchPlugin",
-                            "Native download failed",
-                            e
-                        );
+                        
 
                         JSObject ret = new JSObject();
                         ret.put("result", new JSObject()
@@ -561,15 +498,18 @@ public class BlockbenchPlugin extends Plugin {
 
     @PluginMethod
     public void pickFile(PluginCall call) {
+        
 
         boolean multiple = call.getBoolean("multiple", false);
 
+        
 
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multiple);
 
+        
 
         startActivityForResult(
             call,
@@ -583,16 +523,17 @@ public class BlockbenchPlugin extends Plugin {
         PluginCall call,
         ActivityResult result
     ) {
+        
 
         if (call == null) {
+            
             return;
         }
 
         if (result == null) {
+            
         } else {
-                "BlockbenchPicker",
-                "resultCode = " + result.getResultCode()
-            );
+            
         }
 
         if (result == null ||
@@ -605,9 +546,7 @@ public class BlockbenchPlugin extends Plugin {
 
         Intent data = result.getData();
 
-            "BlockbenchPicker",
-            "Intent data = " + data
-        );
+        
 
         try {
             JSArray files = new JSArray();
@@ -623,15 +562,11 @@ public class BlockbenchPlugin extends Plugin {
                             .getItemAt(i)
                             .getUri();
 
-                        "BlockbenchPicker",
-                        "Selected URI = " + uri
-                    );
+                    
 
                     String copied = copyUriToSandbox(uri);
 
-                        "BlockbenchPicker",
-                        "Copied to = " + copied
-                    );
+                    
 
                     files.put(copied);
                 }
@@ -641,23 +576,17 @@ public class BlockbenchPlugin extends Plugin {
                 Uri uri = data.getData();
 
                 if (uri != null) {
-                        "BlockbenchPicker",
-                        "Selected URI = " + uri
-                    );
+                    
 
                     String copied = copyUriToSandbox(uri);
 
-                        "BlockbenchPicker",
-                        "Copied to = " + copied
-                    );
+                    
 
                     files.put(copied);
                 }
             }
 
-                "BlockbenchPicker",
-                "Returning files = " + files
-            );
+            
 
             JSObject ret = new JSObject();
             ret.put("files", files);
@@ -665,10 +594,7 @@ public class BlockbenchPlugin extends Plugin {
             call.resolve(ret);
 
         } catch (Exception e) {
-                "BlockbenchPicker",
-                "Picker failed",
-                e
-            );
+            
 
             call.reject(
                 "Failed to import file: " + e.getMessage(),
@@ -679,15 +605,11 @@ public class BlockbenchPlugin extends Plugin {
 
     private String copyUriToSandbox(Uri uri) throws Exception {
 
-            "BlockbenchPicker",
-            "copyUriToSandbox URI = " + uri
-        );
+        
 
         String name = getFileName(uri);
 
-            "BlockbenchPicker",
-            "Original filename = " + name
-        );
+        
 
         if (name == null || name.isEmpty()) {
             name = "imported_file";
@@ -709,9 +631,7 @@ public class BlockbenchPlugin extends Plugin {
             System.currentTimeMillis() + "_" + name
         );
 
-            "BlockbenchPicker",
-            "Output = " + out.getAbsolutePath()
-        );
+        
 
         InputStream input =
             getContext()
@@ -740,9 +660,7 @@ public class BlockbenchPlugin extends Plugin {
 
         input.close();
 
-            "BlockbenchPicker",
-            "Copied " + total + " bytes"
-        );
+        
 
         return out.getAbsolutePath();
     }

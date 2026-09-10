@@ -185,9 +185,6 @@ public class AndroidFS {
                     out.flush();
                 }
 
-                    "BlockbenchFS",
-                    "SAF WRITE OK: " + uri
-                );
 
                 return true;
             }
