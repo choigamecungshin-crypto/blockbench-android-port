@@ -1,4 +1,4 @@
-import { shell } from "../native_apis";
+import { shell, AndroidBridge } from "../native_apis";
 
 //Import
 export function setupDragHandlers() {
@@ -603,11 +603,18 @@ BARS.defineActions(function() {
 			Blockbench.textPrompt('action.open_from_link', '', link => {
 				if (link.match(/https:\/\/blckbn.ch\//) || link.length == 4 || link.length == 6) {
 					let code = link.replace(/\/$/, '').split('/').last();
-					$.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
-						Codecs.project.load(model, {path: ''});
-					}).fail(error => {
-						Blockbench.showQuickMessage('message.invalid_link')
-					})
+					if (isApp) {
+                                                AndroidBridge.call('httpGet', {url: `https://blckbn.ch/api/models/${code}`}).then(data => {
+                                                        if (data) Codecs.project.load(JSON.parse(data), {path: ''});
+                                                        else Blockbench.showQuickMessage('message.invalid_link');
+                                                }).catch(() => Blockbench.showQuickMessage('message.invalid_link'));
+                                        } else {
+                                                $.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
+                                                        Codecs.project.load(model, {path: ''});
+                                                }).fail(() => {
+                                                        Blockbench.showQuickMessage('message.invalid_link');
+                                                });
+                                        }
 				} else {
 					$.getJSON(link, (model) => {
 						Codecs.project.load(model, {path: ''});
@@ -621,11 +628,18 @@ BARS.defineActions(function() {
 	Blockbench.on('drop_text', ({text}) => {
 		if (text && text.startsWith('https://blckbn.ch/')) {
 			let code = text.replace(/\/$/, '').split('/').last();
-			$.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
-				Codecs.project.load(model, {path: ''});
-			}).fail(error => {
-				Blockbench.showQuickMessage('message.invalid_link')
-			})
+			if (isApp) {
+                                                AndroidBridge.call('httpGet', {url: `https://blckbn.ch/api/models/${code}`}).then(data => {
+                                                        if (data) Codecs.project.load(JSON.parse(data), {path: ''});
+                                                        else Blockbench.showQuickMessage('message.invalid_link');
+                                                }).catch(() => Blockbench.showQuickMessage('message.invalid_link'));
+                                        } else {
+                                                $.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
+                                                        Codecs.project.load(model, {path: ''});
+                                                }).fail(() => {
+                                                        Blockbench.showQuickMessage('message.invalid_link');
+                                                });
+                                        }
 		}
 	})
 	new Action('extrude_texture', {

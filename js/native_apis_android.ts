@@ -11,7 +11,7 @@ import { Capacitor } from '@capacitor/core';
 
 const NULL = null;
 
-const AndroidBridge = {
+export const AndroidBridge = {
     async call(api: string, arg: any = ''): Promise<any> {
         if (!Capacitor.isNativePlatform()) {
             console.warn('[AndroidBridge] Not running on native Android:', api);
@@ -191,7 +191,11 @@ export const nativeImage = NULL;
 export const ipcRenderer = {
     on() {},
     once() {},
-    send() {},
+    send(channel: string) {
+        if (channel === 'new-window') {
+            AndroidBridge.call('newWindow');
+        }
+    },
     invoke() {
         return Promise.resolve(null);
     }
@@ -336,6 +340,9 @@ export const fs = {
         return result;
     },
 
+        readFileBase64Sync(path: string) {
+            return androidFS().readFileBase64Sync(path);
+        },
     readFileSync(path: string, options?: any) {
         const base64 = androidFS().readFileBase64Sync(path);
         const bytes = base64Decode(base64);

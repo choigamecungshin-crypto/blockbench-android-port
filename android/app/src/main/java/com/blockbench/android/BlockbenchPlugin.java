@@ -19,6 +19,9 @@ import androidx.activity.result.ActivityResult;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import org.json.JSONObject;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -396,6 +399,51 @@ public class BlockbenchPlugin extends Plugin {
         String api = call.getString("api", "");
         String arg = call.getString("arg", "");
 
+        if ("newWindow".equals(api)) {
+            Intent intent = new Intent(getActivity(), MainActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
+            intent.addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+            intent.addFlags(Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT);
+            getActivity().startActivity(intent);
+            call.resolve();
+            return;
+        }
+
+        if ("httpGet".equals(api)) {
+            new Thread(() -> {
+                HttpURLConnection connection = null;
+                try {
+                    JSONObject obj = new JSONObject(arg);
+                    URL url = new URL(obj.getString("url"));
+                    connection = (HttpURLConnection) url.openConnection();
+                    connection.setRequestMethod("GET");
+                    connection.setConnectTimeout(15000);
+                    connection.setReadTimeout(30000);
+                    connection.setInstanceFollowRedirects(true);
+                    connection.setRequestProperty("User-Agent", "Blockbench Android");
+
+                    int code = connection.getResponseCode();
+                    if (code < 200 || code >= 300) throw new Exception("HTTP " + code);
+
+                    StringBuilder body = new StringBuilder();
+                    try (InputStream in = connection.getInputStream();
+                         BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) body.append(line);
+                    }
+
+                    JSObject ret = new JSObject();
+                    ret.put("result", body.toString());
+                    call.resolve(ret);
+                } catch (Exception e) {
+                    call.reject(e.getMessage(), e);
+                } finally {
+                    if (connection != null) connection.disconnect();
+                }
+            }).start();
+            return;
+        }
+
         if ("downloadFile".equals(api)) {
             try {
                 org.json.JSONObject obj = new org.json.JSONObject(arg);
@@ -629,7 +677,7 @@ public class BlockbenchPlugin extends Plugin {
 
         File out = new File(
             dir,
-            System.currentTimeMillis() + "_" + name
+            name
         );
 
         

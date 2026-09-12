@@ -179,6 +179,7 @@ export namespace Filesystem {
 		if (typeof files == 'string') files = [files];
 
 		let results: FileResult[] = [];
+    console.log('[Android] readFile files:', files, 'length:', files.length, 'type:', typeof files);
 		let result_count = 0;
 		let errant = false;
 		if (isApp && files instanceof FileList == false) {
@@ -212,6 +213,7 @@ export namespace Filesystem {
 					}
 					result_count++;
 					if (result_count === files.length) {
+                                                console.log('[Android] readFile callback:', results);
 						callback(results)
 					}
 
@@ -250,6 +252,7 @@ export namespace Filesystem {
 					}
 					result_count++;
 					if (result_count === files.length) {
+                                                console.log('[Android] readFile callback:', results);
 						callback(results)
 					}
 				}
@@ -269,6 +272,7 @@ export namespace Filesystem {
 					}
 					result_count++;
 					if (result_count === files.length) {
+                                                console.log('[Android] readFile callback:', results);
 						callback(results)
 					}
 				}

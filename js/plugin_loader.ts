@@ -502,42 +502,56 @@ export class Plugin {
 		});
 	}
 	async loadFromFile(file: Filesystem.FileResult, first = false) {
-		var scope = this;
-		if (!isApp && !first) return this;
-		if (first) {
-			if (isApp) {
-				if (!confirm(tl('message.load_plugin_app'))) return;
-			} else {
-				if (!confirm(tl('message.load_plugin_web'))) return;
-			}
-		}
+        console.log('[Android] loadFromFile START');
+        try {
+            var scope = this;
+            console.log('[Android] scope OK');
 
-		this.id = pathToName(file.path);
-		Plugins.registered[this.id] = this;
-		Plugins.all.safePush(this);
-		this.source = 'file';
-		this.tags.safePush('Local');
+            if (!isApp && !first) return this;
 
-		if (isApp) {
-			let content = await this.#runPluginFile(file.path).catch((error) => {
-				console.error(error);
-			});
-			if (content) {
-				if (first && scope.oninstall) {
-					scope.oninstall()
-				}
-				scope.path = file.path;
-			}
-		} else {
-			this.#runCode(file.content as string);
-			if (first && scope.oninstall) {
-				scope.oninstall()
-			}
-		}
-		this.installed = true;
-		this.#remember();
-		Plugins.sort();
-	}
+            if (first) {
+                console.log('[Android] first = true');
+                if (isApp) {
+                } else {
+                    if (!confirm(tl('message.load_plugin_web'))) return;
+                }
+            }
+
+            console.log('[Android] Before plugin ID');
+            this.id = pathToName(file.path);
+            console.log('[Android] Plugin file path:', file.path, 'id:', this.id);
+
+            Plugins.registered[this.id] = this;
+            Plugins.all.safePush(this);
+            this.source = 'file';
+            this.tags.safePush('Local');
+
+            if (isApp) {
+                let content = await this.#runPluginFile(file.path).catch((error) => {
+                    console.error('[Android] Plugin load error:', error);
+                });
+                if (content) {
+                    if (first && scope.oninstall) {
+                        scope.oninstall()
+                    }
+                    scope.path = file.path;
+                }
+            } else {
+                this.#runCode(file.content as string);
+                if (first && scope.oninstall) {
+                    scope.oninstall()
+                }
+            }
+
+            this.installed = true;
+            this.#remember();
+            Plugins.sort();
+            console.log('[Android] loadFromFile DONE');
+        } catch (e) {
+            console.error('[Android] loadFromFile ERROR:', e);
+        }
+    }
+
 	async loadFromURL(url: string, first: boolean = false) {
 		if (first) {
 			if (isApp) {
@@ -691,6 +705,7 @@ export class Plugin {
 		} else {
 			throw 'Failed to load plugin: Unknown URL format'
 		}
+                console.log('[Android] Running plugin:', this.id);
 		this.#runCode(file_content);
 		return file_content;
 	}
@@ -752,7 +767,10 @@ export class Plugin {
 		if (this.hasImageIcon()) {
 			if (isApp) {
 				if (this.installed && this.source == 'store') {
-					return Plugins.path + this.id + '.' + this.icon;
+					const path = Plugins.path + this.id + '.' + this.icon;
+                                const base64 = fs.readFileBase64Sync(path);
+                                const mime = this.icon.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
+                                return `data:${mime};base64,${base64}`;
 				}
 				if (this.source != 'store')
 					return this.path.replace(/\w+\.js$/, this.icon + (this.cache_version ? '?'+this.cache_version : ''));
@@ -1929,6 +1947,7 @@ BARS.defineActions(function() {
 				extensions: ['js'],
 				type: 'Blockbench Plugin',
 			}, function(files) {
+                console.log('[Android] Calling loadFromFile:', files[0]);
 				new Plugin().loadFromFile(files[0], true)
 			})
 		}
