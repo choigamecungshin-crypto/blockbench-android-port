@@ -1947,8 +1947,8 @@ BARS.defineActions(function() {
 				extensions: ['js'],
 				type: 'Blockbench Plugin',
 			}, function(files) {
-                console.log('[Android] Calling loadFromFile:', files[0]);
-				new Plugin().loadFromFile(files[0], true)
+                console.log('[Android] Calling loadFromFile:', files.length);
+				files.forEach((file, i) => new Plugin().loadFromFile(file, i === 0))
 			})
 		}
 	})

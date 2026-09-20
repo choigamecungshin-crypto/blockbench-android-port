@@ -69,7 +69,7 @@ export function initializeDesktopApp() {
 			$('#mac_window_menu').show()
 		})
 	} else {
-		$('#windows_window_menu').show()
+		if (Blockbench.platform != 'android') $("#windows_window_menu").show()
 	}
 	if (Blockbench.platform == 'linux') {
 		// Clear GPU cache: https://github.com/JannisX11/blockbench/issues/1964

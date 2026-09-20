@@ -993,9 +993,6 @@ BARS.defineActions(function() {
 			for (let kf of new_keyframes) {
 				kf.remove();
 			}
-			if (isApp) {
-				clipboard.writeHTML(JSON.stringify({type: 'keyframes', content: Clipbench.keyframes}));
-			}
 		}
 	})
 })

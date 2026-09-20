@@ -209,7 +209,7 @@ export namespace Filesystem {
 					results[i] = {
 						name: pathToName(file, true),
 						path: file,
-						content: file
+						content: `data:image/${pathToName(file, true).split(".").pop()};base64,${fs.readFileBase64Sync(file)}`
 					}
 					result_count++;
 					if (result_count === files.length) {
@@ -556,56 +556,68 @@ resource_id?: string
 	/**
 	 * Writes a file to the file system. Desktop app only.
 	 */
-	export function writeFile(
-		file_path: string,
-		options: WriteOptions,
-		callback?: (file_path: string) => void
-	) {
-		if (!isApp || !file_path) {
-			return;
-		}
-		if (options.savetype === 'image' && typeof options.content === 'string') {
-			if (options.content.substr(0, 10) === 'data:image') {
-				fs.writeFileSync(file_path, options.content.split(',')[1], {encoding: 'base64'})
-				if (callback) callback(file_path)
-			} else {
-				let path = options.content.replace(/\?\d+$/, '');
-				if (PathModule.relative(path, file_path)) {
-					fs.copyFileSync(path, file_path);
-				}
-				if (callback) callback(file_path)
-			}
-			return;
-		}
-		if (options.custom_writer) {
-			options.custom_writer(options.content, file_path, callback)
+    export function writeFile(
+        file_path: string,
+        options: WriteOptions,
+        callback?: (file_path: string) => void
+    ) {
+        if (!isApp || !file_path) {
+            return;
+        }
 
-		} else if (options.savetype === 'zip') {
-			let fileReader = new FileReader();
-			fileReader.onload = function(event) {
-				let buffer = Buffer.from(new Uint8Array(this.result as ArrayBuffer));
-				fs.writeFileSync(file_path, buffer)
-				if (callback) {
-					callback(file_path)
-				}
-			};
-			fileReader.readAsArrayBuffer(options.content as Blob);
+        if (options.savetype === 'image' && typeof options.content === 'string') {
+            if (options.content.substr(0, 10) === 'data:image') {
+                fs.writeFileSync(file_path, options.content.split(',')[1], {encoding: 'base64'});
+                if (callback) callback(file_path);
+            } else {
+                let path = options.content.replace(/\?\d+$/, '');
+                if (PathModule.relative(path, file_path)) {
+                    fs.copyFileSync(path, file_path);
+                }
+                if (callback) callback(file_path);
+            }
+            return;
+        }
 
-		} else {
-			//text or binary
-			let content = options.content;
-			if (content instanceof ArrayBuffer) {
-				// @ts-ignore
-				content = Buffer.from(content);
-			}
-			fs.writeFileSync(file_path, content as string)
-			if (callback) {
-				callback(file_path)
-			}
-		}
-	}
+        if (options.custom_writer) {
+            options.custom_writer(options.content, file_path, callback);
+            return;
+        }
 
+        if (options.content instanceof Blob) {
+            const fileReader = new FileReader();
 
+            fileReader.onload = function() {
+                const bytes = new Uint8Array(
+                    this.result as ArrayBuffer
+                );
+
+                fs.writeFileSync(file_path, bytes);
+
+                if (callback) callback(file_path);
+            };
+
+            fileReader.onerror = function() {
+                console.error('[Blockbench] Failed to read Blob for export');
+            };
+
+            fileReader.readAsArrayBuffer(options.content);
+            return;
+        }
+
+        let content = options.content;
+
+        if (content instanceof ArrayBuffer) {
+            // @ts-ignore
+            content = Buffer.from(content);
+        }
+
+        fs.writeFileSync(file_path, content as string);
+
+        if (callback) {
+            callback(file_path);
+        }
+    }
 	// MARK: Open
 	export function showFileInFolder(path: string) {
 		ipcRenderer.send('show-item-in-folder', path);

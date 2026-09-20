@@ -192,12 +192,6 @@ export const Screencam = {
 		}
 	}),
 	screenshotPreview(preview, options = 0, cb) {
-                if (Blockbench.platform === "android") {
-                        androidWebViewScreenshot().then(data => {
-                                if (data) Screencam.returnScreenshot("data:image/png;base64," + data, cb);
-                        });
-                        return;
-                }
 		Canvas.withoutGizmos(function() {
 
 			preview.render()
@@ -425,7 +419,7 @@ export const Screencam = {
 						type: tl('data.image'),
 						savetype: is_gif ? 'binary' : 'image',
 						name: Project ? Project.name.replace(/\.geo$/, '') : 'screenshot',
-						content: is_gif ? (isApp ? Buffer(dataUrl.split(',')[1], 'base64') : blob) : dataUrl,
+						content: is_gif ? blob : dataUrl,
 					})
 				} else if (result === 'menu.texture.edit') {
 					Codecs.image.load(dataUrl, '', [img.naturalWidth, img.naturalHeight]);

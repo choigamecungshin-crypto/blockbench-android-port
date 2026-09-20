@@ -787,16 +787,7 @@ Object.assign(Clipbench, {
 			clipboard.writeHTML(JSON.stringify({type: 'keyframes', content: Clipbench.keyframes}))
 		}
 	},
-	pasteKeyframes() {
-		if (isApp) {
-			var raw = clipboard.readHTML()
-			try {
-				var data = JSON.parse(raw)
-				if (data.type === 'keyframes' && data.content) {
-					Clipbench.keyframes = data.content
-				}
-			} catch (err) {}
-		}
+        pasteKeyframes() {
 		if (Clipbench.keyframes && Clipbench.keyframes.length) {
 
 			if (!Animation.selected) return;

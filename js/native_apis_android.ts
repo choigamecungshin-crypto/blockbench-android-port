@@ -161,11 +161,16 @@ export const electron = {
 
 export const clipboard = {
     writeText(text: string) {
-        AndroidBridge.call('clipboard.writeText', text);
+        AndroidBridge.call("clipboard.writeText", text);
     },
-
     async readText() {
-        return await AndroidBridge.call('clipboard.readText') ?? '';
+        return await AndroidBridge.call("clipboard.readText") ?? "";
+    },
+    writeHTML(html: string) {
+        AndroidBridge.call("clipboard.writeText", html);
+    },
+    async readHTML() {
+        return await AndroidBridge.call("clipboard.readText") ?? "";
     }
 };
 
@@ -371,7 +376,20 @@ export const fs = {
     },
 
     writeFileSync(path: string, data: any, options?: any) {
-        const base64 = base64Encode(data);
+        let base64: string;
+
+        if (
+            typeof data === 'string' &&
+            (
+                options === 'base64' ||
+                options?.encoding === 'base64'
+            )
+        ) {
+            base64 = data;
+        } else {
+            base64 = base64Encode(data);
+        }
+
         const result = androidFS().writeFileBase64Sync(path, base64);
 
         if (!result) {
@@ -380,7 +398,6 @@ export const fs = {
 
         return result;
     },
-
     statSync(path: string) {
         const bridge = androidFS();
 
@@ -477,7 +494,64 @@ export const fs = {
     }
 
 };
-export const NodeBuffer = globalThis.Buffer ?? NULL;
+class AndroidBuffer extends Uint8Array {
+    static from(data: any, encoding?: string): AndroidBuffer {
+        if (typeof data === 'string') {
+            if (encoding === 'base64') {
+                const binary = atob(data);
+                const result = new AndroidBuffer(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                    result[i] = binary.charCodeAt(i);
+                }
+                return result;
+            }
+
+            const encoded = new TextEncoder().encode(data);
+            return new AndroidBuffer(encoded);
+        }
+
+        if (data instanceof ArrayBuffer) {
+            return new AndroidBuffer(new Uint8Array(data));
+        }
+
+        if (ArrayBuffer.isView(data)) {
+            return new AndroidBuffer(
+                data.buffer.slice(
+                    data.byteOffset,
+                    data.byteOffset + data.byteLength
+                )
+            );
+        }
+
+        if (Array.isArray(data)) {
+            return new AndroidBuffer(data);
+        }
+
+        return new AndroidBuffer(data);
+    }
+
+    static alloc(size: number, fill = 0): AndroidBuffer {
+        const result = new AndroidBuffer(size);
+        result.fill(fill);
+        return result;
+    }
+
+    toString(encoding?: string): string {
+        if (encoding === 'base64') {
+            let binary = '';
+            for (let i = 0; i < this.length; i++) {
+                binary += String.fromCharCode(this[i]);
+            }
+            return btoa(binary);
+        }
+
+        return new TextDecoder().decode(this);
+    }
+}
+
+export const NodeBuffer = AndroidBuffer;
+
+(globalThis as any).Buffer = AndroidBuffer;
 export const zlib = NULL;
 export const child_process = NULL;
 export const https = {

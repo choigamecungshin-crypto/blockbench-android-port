@@ -29,6 +29,79 @@ import java.net.URL;
 public class BlockbenchPlugin extends Plugin {
 
     private String saveFileName = "untitled";
+    private McpHttpServer mcpHttpServer;
+
+    @PluginMethod
+    public void mcpServerStart(PluginCall call) {
+        int port = call.getInt("port", 39741);
+
+        try {
+            if (mcpHttpServer == null) {
+                mcpHttpServer = new McpHttpServer(new McpHttpServer.Listener() {
+                    @Override
+                    public void onRequest(String id, String request) {
+                        JSObject event = new JSObject();
+                        event.put("id", id);
+                        event.put("request", request);
+                        notifyListeners("mcpRequest", event);
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        JSObject event = new JSObject();
+                        event.put("message", message);
+                        notifyListeners("mcpError", event);
+                    }
+                });
+            }
+
+            mcpHttpServer.start(port);
+
+            JSObject ret = new JSObject();
+            ret.put("ok", true);
+            ret.put("port", port);
+            ret.put("running", mcpHttpServer.isRunning());
+            call.resolve(ret);
+
+        } catch (Exception e) {
+            mcpHttpServer = null;
+            call.reject("MCP server start failed: " + e.toString());
+        }
+    }
+
+    @PluginMethod
+    public void mcpServerRespond(PluginCall call) {
+        String id = call.getString("id", "");
+        String response = call.getString("response", "");
+
+        if (mcpHttpServer == null) {
+            call.reject("MCP server is not running");
+            return;
+        }
+
+        mcpHttpServer.respond(id, response);
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void mcpServerClose(PluginCall call) {
+        String id = call.getString("id", "");
+
+        if (mcpHttpServer != null) {
+            mcpHttpServer.closeConnection(id);
+        }
+
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void mcpServerStop(PluginCall call) {
+        if (mcpHttpServer != null) {
+            mcpHttpServer.stop();
+        }
+
+        call.resolve();
+    }
 
     // Normal Save: Android file picker
     @PluginMethod
@@ -556,7 +629,7 @@ public class BlockbenchPlugin extends Plugin {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multiple);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
 
         
 
