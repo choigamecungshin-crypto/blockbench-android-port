@@ -7,7 +7,7 @@ import { sort_collator } from "./misc";
 import { separateThousands } from "./util/math_util";
 import { getDateDisplay } from "./util/util";
 import { Filesystem } from "./file_system";
-import { app, fs, getPluginPermissions, getPluginScopedRequire, https, revokePluginPermissions } from "./native_apis";
+import { app, fs, getPluginPermissions, getPluginScopedRequire, https, revokePluginPermissions, AndroidBridge } from "./native_apis";
 import { Panels } from "./interface/panels";
 import VersionUtil from './util/version_util'
 import { ModelLoader } from "./io/model_loader";
@@ -1131,7 +1131,22 @@ ExperimentalSettings.add(
 )
 Plugins.loading_promise = new Promise((resolve, reject) => {
 	const timeout_seconds = ExperimentalSettings.get('plugin_load_timeout') as number ?? 10;
-	$.ajax({
+	console.log('[ANDROID PLUGINS] platform=', Blockbench.platform, 'api=', Plugins.api_path);
+	if (Blockbench.platform == 'android') {
+		AndroidBridge.call('httpGet', {url: Plugins.api_path+'.json'}).then(data => { console.log('[ANDROID PLUGINS] httpGet result=', typeof data, data ? String(data).length : 0);
+			try {
+				Plugins.json = typeof data === 'string' ? JSON.parse(data) : data;
+				resolve();
+				Plugins.loading_promise = null;
+			} catch (error) {
+				console.error('Failed to parse plugin data', error);
+				reject(error);
+			}
+		}).catch(error => {
+			console.error('Could not connect to plugin server:', error);
+			reject(error);
+		});
+	} else $.ajax({
 		cache: false,
 		url: Plugins.api_path+'.json',
 		timeout: 1_000 * timeout_seconds,
