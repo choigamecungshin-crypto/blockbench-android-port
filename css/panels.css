@@ -2412,7 +2412,11 @@ span.controller_state_section_info {
 	body[mode=paint] #uv_viewport.tiled_mode {
 		cursor: crosshair;
 	}
-	#uv_frame > #texture_canvas_wrapper > canvas,
+	#uv_frame > #texture_canvas_wrapper {
+    position: absolute;
+    inset: 0;
+}
+#uv_frame > #texture_canvas_wrapper > canvas,
 	#uv_frame > img {
 		position: absolute;
 		pointer-events: none;

@@ -537,7 +537,7 @@
 	}
 	img.icon {
 		height: 26px;
-		image-rendering: pixelated;
+		image-rendering: crisp-edges;
 	}
 
 	.tool.widget {

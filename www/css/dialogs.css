@@ -2843,7 +2843,7 @@
 		image-rendering: auto;
 	}
 	#tab_overview_grid > li.pixel_art img {
-		image-rendering: pixelated;
+		image-rendering: crisp-edges;
 	}
 	#tab_overview_grid > li label {
 		cursor: inherit;

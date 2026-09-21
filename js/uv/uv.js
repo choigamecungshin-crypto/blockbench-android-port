@@ -3047,7 +3047,7 @@ Interface.definePanels(function() {
 					this.texture.canvas.style.objectFit = this.texture.frameCount > 1 ? 'cover' : 'fill';
 					this.texture.canvas.style.imageRendering = this.texture.width < this.inner_width ? 'inherit' : 'auto';
 
-					UVEditor.updateOverlayCanvas();
+					UVEditor.updateOverlayCanvas(); if (this.texture?.canvas) { const c=this.texture.canvas.getContext("2d"); c.fillStyle="#ff0000"; c.fillRect(0,0,32,32); console.log("[UV RED TEST]"); }
 
 					Vue.nextTick(() => {
 						let wrapper = this.$refs.texture_canvas_wrapper;
@@ -3060,6 +3060,7 @@ Interface.definePanels(function() {
 							wrapper.append(UVEditor.overlay_canvas);
 						}
 						wrapper.append(this.texture.canvas);
+console.log("[UVCANVAS]", JSON.stringify({connected:this.texture.canvas.isConnected,canvas:[this.texture.canvas.offsetWidth,this.texture.canvas.offsetHeight],bitmap:[this.texture.canvas.width,this.texture.canvas.height],wrapper:[wrapper?.offsetWidth,wrapper?.offsetHeight],frame:[document.querySelector("#uv_frame")?.offsetWidth,document.querySelector("#uv_frame")?.offsetHeight],z:getComputedStyle(this.texture.canvas).zIndex,parent_z:wrapper?getComputedStyle(wrapper).zIndex:null,src:this.texture.source?.slice(0,40)}));
 					})
 				},
 				updateMouseCoords(event) {					

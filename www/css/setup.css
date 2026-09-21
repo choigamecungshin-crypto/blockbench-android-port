@@ -438,7 +438,7 @@
 		color: var(--color-text);
 		outline-color: var(--color-accent);
 		background-color: var(--color-dark);
-		image-rendering: pixelated;
+		image-rendering: crisp-edges;
 		forced-color-adjust: none;
 	}
 	hr {

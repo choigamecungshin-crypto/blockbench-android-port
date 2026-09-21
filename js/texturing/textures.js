@@ -96,7 +96,7 @@ export class Texture {
 
 		let size_control = {};
 
-		this.img.onload = () => {
+		this.img.onload = () => { console.log("[TEXTURE ONLOAD]", this.path, this.img.naturalWidth, this.img.naturalHeight);
 			let dimensions_changed = tex.width !== img.naturalWidth || tex.height !== img.naturalHeight;
 			if (self.width && dimensions_changed) {
 				tex = new THREE.Texture(this.canvas);
@@ -125,7 +125,7 @@ export class Texture {
 			} else if (!self.layers_enabled) {
 				self.canvas.width = self.width;
 				self.canvas.height = self.height;
-				self.ctx.drawImage(img, 0, 0);
+				self.ctx.drawImage(img, 0, 0); const px=self.ctx.getImageData(0,0,self.canvas.width,self.canvas.height).data; let a=0; for(let i=3;i<px.length;i+=4) if(px[i]>0)a++; console.log("[TEXTURE CANVAS]",self.canvas.width,self.canvas.height,"nontransparent",a,"total",px.length/4);
 				if (UVEditor.vue.texture == this) UVEditor.updateOverlayCanvas();
 			}
 
@@ -692,26 +692,28 @@ export class Texture {
 		this.show_icon = false;
 		return this;
 	}
-	setSourceFromLocalFile() {
-		let file_format_data = Texture.file_formats[this.file_format];
-		if (!file_format_data.decode) {
-			this.source = this.path.replace(/#/g, '%23') + '?' + tex_version;
+    setSourceFromLocalFile() {
+        let file_format_data = Texture.file_formats[this.file_format];
 
-		} else if (isApp && this.path) {
-			let data = fs.readFileSync(this.path);
-			
-			let file_format_data = Texture.file_formats[this.file_format];
-			if (file_format_data.decode) {
-				file_format_data.decode(data, this);
-			}
-
-		}
-	}
+        if (isApp && this.path) {
+            if (file_format_data.decode) {
+                let data = fs.readFileSync(this.path);
+                file_format_data.decode(data, this);
+            } else {
+                let base64 = fs.readFileBase64Sync(this.path);
+                let mime = this.file_format == 'jpeg' ? 'image/jpeg' : 'image/' + this.file_format;
+                this.source = `data:${mime};base64,${base64}`;
+                this.img.src = this.source;
+            }
+        } else if (!file_format_data.decode) {
+            this.source = this.path.replace(/#/g, '%23') + '?' + tex_version;
+        }
+    }
 	updateSource(dataUrl) {
 		// Update the source, only used when source is secure + base64 
 		if (!dataUrl) dataUrl = this.source;
 		this.source = dataUrl;
-		this.img.src = dataUrl;
+		console.log("[TEXTURE SRC]", dataUrl); this.img.src = dataUrl;
 		this.updateMaterial();
 		return this;
 	}
