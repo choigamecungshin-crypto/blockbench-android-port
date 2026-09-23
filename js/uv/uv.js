@@ -2814,6 +2814,7 @@ Interface.definePanels(function() {
 				layer: null,
 				mouse_coords: {x: -1, y: -1, active: false, line_preview: false},
 				touches_count: 0,
+				touch_gesture: null,
 				last_brush_position: [0, 0],
 				copy_brush_source: null,
 				helper_lines: {x: -1, y: -1},
@@ -3138,78 +3139,145 @@ Interface.definePanels(function() {
 						return false;
 					}
 				},
+				getTouchPoints(event) {
+					return Array.from(event.touches || []).slice(0, 2).map(touch => [touch.clientX, touch.clientY]);
+				},
+				getGestureCenter(points) {
+					if (points.length < 2) return points[0].slice();
+					return [(points[0][0] + points[1][0]) / 2, (points[0][1] + points[1][1]) / 2];
+				},
+				getGestureDistance(points) {
+					if (points.length < 2) return 0;
+					return Math.sqrt(Math.pow(points[0][0] - points[1][0], 2) + Math.pow(points[0][1] - points[1][1], 2));
+				},
+				cancelTouchInteractions() {
+					removeEventListeners(this.$refs.viewport, 'pointermove', UVEditor.movePaintTool, false);
+					removeEventListeners(document, 'pointerup', UVEditor.stopBrush, false);
+					if (Painter.current.texture || Painter.brushChanges) {
+						Painter.paint_stroke_canceled = true;
+						if (Painter.brushChanges) {
+							Undo.cancelEdit(true);
+							Painter.brushChanges = false;
+						}
+						Painter.stopPaintTool();
+						delete Painter.current.texture;
+					}
+					this.selection_rect.active = false;
+					this.texture_selection_rect.active = false;
+					this.mouse_coords.active = false;
+					PointerTarget.endTarget();
+				},
 				onTouchStart(event) {
 					setActivePanel('uv');
-					this.touches_count = event.touches?.length;
-					let scope = this;
-					let second_touch;
-					let original_zoom = this.zoom;
-					let original_margin = this.getFrameMargin();
-					let offset = $(this.$refs.viewport).offset();
-					UVEditor.total_zoom_offset = [6, 6];
-					let force = event.touches?.[0]?.force;
-					if (event.touches && (!force || force == 0.5) && !Toolbox.selected.paintTool && event.target.id == 'uv_frame') {
-						// Drag (touch only)
-						if (event.touches) {
-							event.clientX = event.touches[0].clientX;
-							event.clientY = event.touches[0].clientY;
-						}
-						let {viewport} = this.$refs;
-						let margin = this.getFrameMargin();
-						let margin_center = [this.width/2, this.height/2];
-						let original = [
-							viewport.scrollLeft - 5,
-							viewport.scrollTop - 5
-						];
-						function touchPan(e2) {
-							if (e2.touches) {
-								e2.clientX = e2.touches[0].clientX;
-								e2.clientY = e2.touches[0].clientY;
+					this.touches_count = event.touches.length;
+					let {viewport, frame} = this.$refs;
+					if (!viewport) return;
 
-								if (!second_touch && e2.touches[1]) {
-									second_touch = e2.touches[1];
-								}
-								if (second_touch && e2.touches[1]) {
+					let points = this.getTouchPoints(event);
+					if (!points.length) return;
+					if (event.touches[0].touchType == 'stylus') return;
 
-									let factor = Math.sqrt(Math.pow(e2.touches[0].clientX - e2.touches[1].clientX, 2) + Math.pow(e2.touches[0].clientY - e2.touches[1].clientY, 2))
-											/ Math.sqrt(Math.pow(event.touches[0].clientX - second_touch.clientX, 2) + Math.pow(event.touches[0].clientY - second_touch.clientY, 2));
-
-									if (!Math.epsilon(scope.zoom, original_zoom * factor, 0.01)) {
-										UVEditor.setZoom(original_zoom * factor);
-
-										let margin = scope.getFrameMargin();
-										let offsetX = e2.clientX - offset.left - margin[0];
-										let offsetY = e2.clientY - offset.top - margin[1];
-										let zoom_diff = scope.zoom - original_zoom;
-
-										UVEditor.total_zoom_offset[0] = ((original[0] + event.clientX - e2.clientX + offsetX) * zoom_diff) / original_zoom + margin[0] - original_margin[0];
-										UVEditor.total_zoom_offset[1] = ((original[1] + event.clientY - e2.clientY  + offsetY) * zoom_diff) / original_zoom + margin[1] - original_margin[1];
-									}
-								}
-							}
-							viewport.scrollLeft = Math.snapToValues(original[0] + event.clientX - e2.clientX + UVEditor.total_zoom_offset[0], [margin[0], margin_center[0]], 10);
-							viewport.scrollTop = Math.snapToValues(original[1] + event.clientY - e2.clientY + UVEditor.total_zoom_offset[1], [margin[1], margin_center[1]], 10);
-
-							UVEditor.vue.centered_view = (viewport.scrollLeft == margin[0] || viewport.scrollLeft == margin_center[0])
-														&& (viewport.scrollTop == margin[1] || viewport.scrollTop == margin_center[1]);
-							UVEditor.updateUVNavigator();
-						}
-						function touchPanStop(e) {
-							document.removeEventListener('touchmove', touchPan);
-							document.removeEventListener('touchend', touchPanStop);
-							if (e.which == 3 && Math.pow(viewport.scrollLeft - original[0], 2) + Math.pow(viewport.scrollTop - original[1], 2) > 50) {
-								preventContextMenu();
-							}
-						}
-						document.addEventListener('touchmove', touchPan);
-						document.addEventListener('touchend', touchPanStop);
+					if (this.touch_gesture) {
+						// Additional finger placed during a gesture, restart it to include the new finger
+						this.touch_gesture.reset(points);
 						event.preventDefault();
-						$(getFocusedTextInput()).trigger('blur');
 						return false;
 					}
+					UVEditor.total_zoom_offset = [6, 6];
+
+					if (points.length < 2) {
+						// One finger pans, unless a tool needs the input
+						if (this.mode == 'paint' && Toolbox.selected.paintTool) return;
+						let {target} = event;
+						if (target != viewport && target != frame && target.id != 'uv_background'
+							&& !target.closest('#texture_canvas_wrapper')) return;
+					} else {
+						// Two fingers always pan and zoom, so abort whatever the first finger started
+						this.cancelTouchInteractions();
+					}
+					this.startTouchGesture(points);
+					event.preventDefault();
+					$(getFocusedTextInput()).trigger('blur');
+					return false;
+				},
+				startTouchGesture(points) {
+					let scope = this;
+					let {viewport} = this.$refs;
+					let viewport_rect = viewport.getBoundingClientRect();
+					let point_count, start_center, start_distance, start_zoom, anchor;
+
+					function reset(points) {
+						point_count = points.length;
+						start_center = scope.getGestureCenter(points);
+						start_distance = scope.getGestureDistance(points);
+						start_zoom = scope.zoom;
+						viewport_rect = viewport.getBoundingClientRect();
+						let margin = scope.getFrameMargin();
+						// Point of the UV frame, in relative frame space, that stays underneath the fingers
+						anchor = [
+							(viewport.scrollLeft + start_center[0] - viewport_rect.left - margin[0]) / scope.inner_width,
+							(viewport.scrollTop + start_center[1] - viewport_rect.top - margin[1]) / scope.inner_height,
+						];
+					}
+					function applyScroll(center) {
+						let margin = scope.getFrameMargin();
+						let margin_center = [scope.width/2, scope.height/2];
+						viewport.scrollLeft = Math.snapToValues(anchor[0] * scope.inner_width + margin[0] - (center[0] - viewport_rect.left), [margin[0], margin_center[0]], 10);
+						viewport.scrollTop = Math.snapToValues(anchor[1] * scope.inner_height + margin[1] - (center[1] - viewport_rect.top), [margin[1], margin_center[1]], 10);
+
+						scope.centered_view = (viewport.scrollLeft == margin[0] || viewport.scrollLeft == margin_center[0])
+											&& (viewport.scrollTop == margin[1] || viewport.scrollTop == margin_center[1]);
+						UVEditor.updateUVNavigator();
+					}
+					function move(event) {
+						let points = scope.getTouchPoints(event);
+						if (!points.length) return;
+						if (points.length != point_count) reset(points);
+						let center = scope.getGestureCenter(points);
+						let zoomed = false;
+						if (points.length == 2 && start_distance > 4) {
+							let zoom = start_zoom * (scope.getGestureDistance(points) / start_distance);
+							if (!Math.epsilon(scope.zoom, zoom, 0.001)) {
+								UVEditor.setZoom(zoom);
+								scope.updateTextureCanvas();
+								zoomed = true;
+							}
+						}
+						if (zoomed) {
+							// Wait for the frame to resize, otherwise the scroll position gets clamped
+							Vue.nextTick(() => applyScroll(center));
+						} else {
+							applyScroll(center);
+						}
+						event.preventDefault();
+					}
+					function stop(event) {
+						scope.touches_count = event.touches ? event.touches.length : 0;
+						let points = scope.getTouchPoints(event);
+						if (points.length) {
+							// Keep going with the remaining fingers
+							reset(points);
+							return;
+						}
+						document.removeEventListener('touchmove', move, {passive: false});
+						document.removeEventListener('touchend', stop);
+						document.removeEventListener('touchcancel', stop);
+						scope.touch_gesture = null;
+						UVEditor.saveViewportOffset();
+						UVEditor.updateUVNavigator();
+					}
+					reset(points);
+					this.touch_gesture = {reset, stop};
+					document.addEventListener('touchmove', move, {passive: false});
+					document.addEventListener('touchend', stop);
+					document.addEventListener('touchcancel', stop);
 				},
 				onTouchEnd(event) {
 					this.touches_count = event.touches.length;
+				},
+				onTouchCancel(event) {
+					this.touches_count = event.touches ? event.touches.length : 0;
+					if (this.touch_gesture) this.touch_gesture.stop(event);
 				},
 				onPointerDown(event) {
 					if (this.touches_count) return;
@@ -3565,6 +3633,11 @@ Interface.definePanels(function() {
 					let original_snap = snap;
 					let on_start_ran = false;
 					function drag(e1) {
+						if (scope.touches_count > 1) {
+							// A second finger starts a pan/zoom gesture instead
+							stop();
+							return;
+						}
 						convertTouchEvent(e1);
 						let step_x, step_y;
 						let snap = original_snap;
@@ -5037,6 +5110,7 @@ Interface.definePanels(function() {
 						@pointerdown="onPointerDown($event)"
 						@touchstart="onTouchStart($event)"
 						@touchend="onTouchEnd($event)"
+						@touchcancel="onTouchCancel($event)"
 						@wheel="onMouseWheel($event)"
 						@scroll="onScroll($event)"
 						@mousemove="updateMouseCoords($event)"
